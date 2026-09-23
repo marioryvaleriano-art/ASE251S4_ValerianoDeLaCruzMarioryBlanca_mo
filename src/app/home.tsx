@@ -1,361 +1,518 @@
 /**
- * Pantalla 2 de 3 — HOME / INICIO (estilo Rappi)
- *
- * Componentes AP3 demostrados:
- *  View + StyleSheet + Flexbox → header, cards, secciones
- *  Text                        → títulos, subtítulos, etiquetas
- *  TextInput                   → barra de búsqueda
- *  Pressable                   → categorías, tarjetas de restaurante
- *  Image (expo-image)          → imágenes de restaurantes
- *  ScrollView                  → lista scrolleable
+ * Home — Bodega Peirano
+ * Diseño minimalista: fondo lavanda, top bar blanco, stats en fila,
+ * acceso rápido con íconos de línea, bottom tab bar con botón + central.
  */
-import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
+import { useState } from 'react';
 import {
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
+    Modal,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    Text,
+    View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-const BRAND = '#FF441F';
-const BG = '#F7F7F7';
-const CARD = '#FFFFFF';
-const GRAY = '#6B6B6B';
-const GRAY_LIGHT = '#F2F2F2';
-const YELLOW = '#FFC107';
+// ─── Paleta ───────────────────────────────────────────────────────────────────
+const BURGUNDY      = '#7B1B2E';   // burdeos principal
+const BURGUNDY_DARK = '#5C0D1C';   // burdeos oscuro (sidebar, FAB)
+const BURGUNDY_SOFT = '#F5EEF0';   // burdeos muy suave (fondo chips activos)
+const BG            = '#F0EEF5';   // lavanda muy suave (fondo general)
+const CARD          = '#FFFFFF';
+const BORDER        = '#E8E2EE';
+const TEXT          = '#1A1025';
+const TEXT_SEC      = '#8A7F95';
+const TEXT_MUT      = '#B5ADBE';
 
-// ─── Datos de ejemplo ────────────────────────────────────────────────────────
-const CATEGORIES = [
-  { id: '1', label: 'Hamburguesas', emoji: '🍔' },
-  { id: '2', label: 'Pizza', emoji: '🍕' },
-  { id: '3', label: 'Saludable', emoji: '🥗' },
-  { id: '4', label: 'Sushi', emoji: '🍱' },
-  { id: '5', label: 'Tacos', emoji: '🌮' },
+// ─── Íconos de línea (SVG como texto Unicode / caracteres) ────────────────────
+// Usamos caracteres Unicode que simulan íconos de línea delgada
+const ICON = {
+  menu:       '≡',
+  bell:       '🔔',  // se reemplaza abajo con outline simulado
+  settings:   '⚙',
+  home:       '⌂',
+  warehouse:  '▦',
+  inventory:  '◫',
+  products:   '◻',
+  clients:    '◎',
+  cart:       '⊟',
+  user:       '◯',
+  plus:       '+',
+  almacen:    '▤',
+  botellas:   '|',
+  vino:       '∪',
+  personas:   '◒',
+  close:      '✕',
+  back:       '‹',
+  logout:     '→',
+};
+
+// ─── Módulos sidebar ──────────────────────────────────────────────────────────
+const MODULES = [
+  { id: 'dashboard',   label: 'Dashboard',   symbol: '⊞', route: '/home' },
+  { id: 'almacenes',   label: 'Almacenes',   symbol: '▦', route: '/almacenes-lista' },
+  { id: 'inventario',  label: 'Inventario',  symbol: '◫', route: '/home' },
+  { id: 'registros',   label: 'Registros',   symbol: '☰', route: '/home' },
+  { id: 'pagos',       label: 'Pagos',       symbol: '◈', route: '/home' },
+  { id: 'ventas',      label: 'Ventas',      symbol: '⊟', route: '/home' },
+  { id: 'clientes',    label: 'Clientes',    symbol: '◎', route: '/home' },
+  { id: 'productos',   label: 'Productos',   symbol: '◻', route: '/home' },
+  { id: 'promociones', label: 'Promociones', symbol: '◇', route: '/home' },
 ];
 
-const RESTAURANTS = [
-  {
-    id: '1',
-    name: 'Burger Lab Gourmet',
-    tags: 'Hamburguesas & Papas • Artesanales • Gourmet',
-    rating: '4.9',
-    reviews: '1.2k',
-    time: '20–30 min',
-    promo: 'Envío Gratis Prime',
-    coupon: '$2.500 cupón aplicado',
-    recommended: true,
-    imageUrl: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=600&q=80',
-  },
-  {
-    id: '2',
-    name: 'Bella Italia Trattoria',
-    tags: 'Pastas & Pizzas • Cocina Italiana Tradicional',
-    rating: '4.8',
-    reviews: '980',
-    time: '30–40 min',
-    promo: null,
-    coupon: null,
-    recommended: false,
-    imageUrl: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=600&q=80',
-  },
-  {
-    id: '3',
-    name: 'Green Bowl',
-    tags: 'Ensaladas • Bowls saludables • Vegano',
-    rating: '4.7',
-    reviews: '540',
-    time: '15–25 min',
-    promo: null,
-    coupon: null,
-    recommended: false,
-    imageUrl: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=600&q=80',
-  },
+// ─── Stats del dashboard ──────────────────────────────────────────────────────
+const STATS = [
+  { label: 'Total\nAlmacenes', value: '0', symbol: '▦', bg: '#F5EEF0', iconColor: '#7B1B2E', valColor: '#7B1B2E' },
+  { label: 'Total\nBotellas',  value: '0', symbol: '⌽', bg: '#EBF4FF', iconColor: '#2563EB', valColor: '#2563EB' },
+  { label: 'Productos',        value: '0', symbol: '◻', bg: '#ECFDF5', iconColor: '#059669', valColor: '#059669' },
+  { label: 'Clientes',         value: '0', symbol: '◎', bg: '#FFF7ED', iconColor: '#B45309', valColor: '#B45309' },
+];
+
+// ─── Acceso rápido ────────────────────────────────────────────────────────────
+const QUICK = [
+  { id: 'almacenes',  label: 'Almacenes',  symbol: '▦', route: '/almacenes-lista', bg: '#F5EEF0', iconColor: '#7B1B2E' },
+  { id: 'inventario', label: 'Inventario', symbol: '◫', route: '/home',            bg: '#EBF4FF', iconColor: '#2563EB' },
+  { id: 'ventas',     label: 'Ventas',     symbol: '⊟', route: '/home',            bg: '#ECFDF5', iconColor: '#059669' },
+  { id: 'productos',  label: 'Productos',  symbol: '◻', route: '/home',            bg: '#FFF7ED', iconColor: '#B45309' },
+  { id: 'clientes',   label: 'Clientes',   symbol: '◎', route: '/home',            bg: '#F5F3FF', iconColor: '#7C3AED' },
+  { id: 'pagos',      label: 'Pagos',      symbol: '◈', route: '/home',            bg: '#FFF0F6', iconColor: '#BE185D' },
+];
+
+// ─── Bottom tabs ──────────────────────────────────────────────────────────────
+const BOTTOM_TABS = [
+  { id: 'home',       symbol: '⌂',  label: 'Inicio' },
+  { id: 'almacenes',  symbol: '▦',  label: 'Almacenes' },
+  { id: 'new',        symbol: '+',  label: '',          isFab: true },
+  { id: 'ventas',     symbol: '⊟',  label: 'Ventas' },
+  { id: 'perfil',     symbol: '◎',  label: 'Perfil' },
 ];
 
 export default function HomeScreen() {
   const router = useRouter();
+  const [sidebarOpen, setSidebarOpen]   = useState(false);
+  const [activeModule, setActiveModule] = useState('dashboard');
+  const [activeTab, setActiveTab]       = useState('home');
+
+  function handleModule(mod: (typeof MODULES)[0]) {
+    setActiveModule(mod.id);
+    setSidebarOpen(false);
+    if (mod.route !== '/home') router.push(mod.route as any);
+  }
+
+  function handleBottomTab(tab: (typeof BOTTOM_TABS)[0]) {
+    if (tab.isFab) {
+      router.push('/almacenes-lista');
+      return;
+    }
+    if (tab.id === 'almacenes') {
+      router.push('/almacenes-lista');
+      return;
+    }
+    setActiveTab(tab.id);
+  }
+
+  function handleLogout() {
+    setSidebarOpen(false);
+    router.replace('/login');
+  }
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={s.safe} edges={['top', 'bottom']}>
 
-      {/* ── Step banner ── */}
-      <View style={styles.stepBanner}>
-        <View style={styles.stepBadge}><Text style={styles.stepBadgeText}>2</Text></View>
-        <Text style={styles.stepText}>
-          <Text style={styles.stepBold}>PASO 2 DE 3  Flujo Restaurantes{'\n'}</Text>
-          Acción guiada: Toca <Text style={styles.stepBold}>Burger Lab Gourmet</Text> para explorar el detalle local.
-        </Text>
-      </View>
+      {/* ── Top Bar ── */}
+      <View style={s.topBar}>
+        <Pressable
+          style={({ pressed }) => [s.iconBtn, pressed && s.pressed]}
+          onPress={() => setSidebarOpen(true)}>
+          <Text style={s.menuIcon}>{ICON.menu}</Text>
+        </Pressable>
 
-      {/* ── Header ── */}
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <Text style={styles.headerLabel}>ENTREGAR EN</Text>
-          <Pressable style={styles.locationRow}>
-            <Text style={styles.locationIcon}>📍</Text>
-            <Text style={styles.locationText}>Cra. 15 #85-30, Bogotá</Text>
-            <Text style={styles.locationChevron}>▾</Text>
+        <Text style={s.topTitle}>BP Peirano Admin</Text>
+
+        <View style={s.topRight}>
+          <Pressable style={s.iconBtn}>
+            <Text style={s.topIconSymbol}>🔔</Text>
+          </Pressable>
+          <Pressable style={s.iconBtn}>
+            <Text style={s.topIconSymbol}>⚙</Text>
           </Pressable>
         </View>
-        <View style={styles.headerRight}>
-          <Text style={styles.headerMeta}>⏱ 25–35 min</Text>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>U</Text>
-          </View>
-        </View>
       </View>
 
-      <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
+      {/* ── Sidebar Modal ── */}
+      <Modal
+        visible={sidebarOpen}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setSidebarOpen(false)}>
+        <View style={s.overlay}>
+          <Pressable style={s.backdrop} onPress={() => setSidebarOpen(false)} />
+          <View style={s.sidebar}>
 
-        {/* ── Búsqueda ── */}
-        <View style={styles.searchWrapper}>
-          <Text style={styles.searchIcon}>🔍</Text>
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Buscar comida, hamburguesas, sushi..."
-            placeholderTextColor="#BDBDBD"
-          />
-        </View>
-
-        {/* ── Categorías ── */}
-        <Text style={styles.sectionTitle}>Explorar antojos</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoriesRow}>
-          {CATEGORIES.map((cat) => (
-            <Pressable
-              key={cat.id}
-              style={({ pressed }) => [styles.categoryChip, pressed && styles.pressed]}>
-              <Text style={styles.categoryEmoji}>{cat.emoji}</Text>
-              <Text style={styles.categoryLabel}>{cat.label}</Text>
-            </Pressable>
-          ))}
-        </ScrollView>
-
-        {/* ── Banner promo ── */}
-        <View style={styles.promoBanner}>
-          <View style={styles.promoBannerLeft}>
-            <Text style={styles.promoBannerTag}>🟠 Rappi Prime Days</Text>
-            <Text style={styles.promoBannerHeadline}>Hasta 40% OFF</Text>
-            <Text style={styles.promoBannerSub}>
-              En selección gourmet exclusiva{'\n'}y envíos gratis
-            </Text>
-            <Text style={styles.promoBannerNote}>Aplica con tarjetas seleccionadas</Text>
-            <Pressable style={styles.promoBannerBtn}>
-              <Text style={styles.promoBannerBtnText}>Aprovechar</Text>
-            </Pressable>
-          </View>
-          <View style={styles.promoBannerRight}>
-            <Text style={styles.promoBannerDay}>HOY</Text>
-          </View>
-        </View>
-
-        {/* ── Lista Restaurantes ── */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Restaurantes cerca</Text>
-          <Text style={styles.sectionBadge}>Abiertos</Text>
-          <Text style={styles.sectionMeta}>  Orden: Relevancia</Text>
-        </View>
-
-        {RESTAURANTS.map((r) => (
-          <Pressable
-            key={r.id}
-            style={({ pressed }) => [styles.restaurantCard, pressed && styles.pressed]}
-            onPress={() => router.push('/restaurant-detail')}>
-
-            {/* Imagen */}
-            <View style={styles.restaurantImageWrapper}>
-              {r.recommended && (
-                <View style={styles.recommendedBadge}>
-                  <Text style={styles.recommendedText}>⭐ Recomendado</Text>
+            <View style={s.sidebarHead}>
+              <View style={s.sidebarLogo}>
+                <View style={s.sbLogoBox}>
+                  <Text style={s.sbLogoText}>BP</Text>
                 </View>
-              )}
-              <Image source={{ uri: r.imageUrl }} style={styles.restaurantImage} contentFit="cover" />
-              <View style={styles.timeBadge}>
-                <Text style={styles.timeBadgeText}>⏱ {r.time}</Text>
+                <View>
+                  <Text style={s.sbBrand}>Peirano Admin</Text>
+                  <Text style={s.sbRole}>ADMINISTRATIVE PORTAL</Text>
+                </View>
               </View>
-              <Pressable style={styles.heartBtn}>
-                <Text>🤍</Text>
+              <Pressable style={s.closeBtn} onPress={() => setSidebarOpen(false)}>
+                <Text style={s.closeBtnTxt}>{ICON.close}</Text>
               </Pressable>
             </View>
 
-            {/* Info */}
-            <View style={styles.restaurantInfo}>
-              <View style={styles.restaurantRow}>
-                <Text style={styles.restaurantName}>{r.name}</Text>
-                <View style={styles.ratingBadge}>
-                  <Text style={styles.ratingText}>⭐ {r.rating}</Text>
-                  <Text style={styles.reviewsText}> ({r.reviews}+)</Text>
+            <ScrollView showsVerticalScrollIndicator={false} style={{ flex: 1 }}>
+              {MODULES.map((mod) => {
+                const active = activeModule === mod.id;
+                return (
+                  <Pressable
+                    key={mod.id}
+                    style={[s.sbItem, active && s.sbItemActive]}
+                    onPress={() => handleModule(mod)}>
+                    <Text style={[s.sbItemSymbol, active && s.sbItemSymbolActive]}>
+                      {mod.symbol}
+                    </Text>
+                    <Text style={[s.sbItemLabel, active && s.sbItemLabelActive]}>
+                      {mod.label}
+                    </Text>
+                    {active && <View style={s.sbActiveDot} />}
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+
+            <View style={s.sidebarFoot}>
+              <View style={s.sbUserRow}>
+                <View style={s.sbAvatar}>
+                  <Text style={s.sbAvatarTxt}>A</Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={s.sbUserName}>Admin User</Text>
+                  <Text style={s.sbUserEmail}>admin@peirano.com</Text>
                 </View>
               </View>
-              <Text style={styles.restaurantTags}>{r.tags}</Text>
-              {r.promo && (
-                <View style={styles.promoTag}>
-                  <Text style={styles.promoTagText}>✅ {r.promo}</Text>
-                </View>
-              )}
-              {r.coupon && <Text style={styles.couponText}>🏷 {r.coupon}</Text>}
+              <Pressable style={s.logoutRow} onPress={handleLogout}>
+                <Text style={s.logoutTxt}>Cerrar Sesión  {ICON.logout}</Text>
+              </Pressable>
             </View>
-          </Pressable>
-        ))}
+          </View>
+        </View>
+      </Modal>
 
-        <View style={{ height: 40 }} />
+      {/* ── Contenido principal ── */}
+      <ScrollView
+        style={s.scroll}
+        contentContainerStyle={s.scrollContent}
+        showsVerticalScrollIndicator={false}>
+
+        {/* Breadcrumb */}
+        <Text style={s.breadcrumb}>
+          <Text style={s.breadcrumbMut}>Dashboard</Text>
+        </Text>
+
+        {/* Saludo */}
+        <Text style={s.greeting}>¡Bienvenido!</Text>
+
+        {/* Stats en fila de 4 */}
+        <View style={s.statsRow}>
+          {STATS.map((st) => (
+            <View key={st.label} style={[s.statCard, { backgroundColor: st.bg }]}>
+              <Text style={[s.statSymbol, { color: st.iconColor }]}>{st.symbol}</Text>
+              <Text style={[s.statValue, { color: st.valColor }]}>{st.value}</Text>
+              <Text style={s.statLabel}>{st.label}</Text>
+            </View>
+          ))}
+        </View>
+
+        {/* Acceso rápido */}
+        <Text style={s.sectionTitle}>Acceso rápido</Text>
+        <View style={s.quickGrid}>
+          {QUICK.map((q) => (
+            <Pressable
+              key={q.id}
+              style={({ pressed }) => [s.quickCard, { backgroundColor: q.bg }, pressed && s.pressed]}
+              onPress={() => {
+                if (q.route !== '/home') router.push(q.route as any);
+              }}>
+              <View style={[s.quickIconBox, { backgroundColor: q.iconColor + '22' }]}>
+                <Text style={[s.quickSymbol, { color: q.iconColor }]}>{q.symbol}</Text>
+              </View>
+              <Text style={[s.quickLabel, { color: q.iconColor }]}>{q.label}</Text>
+            </Pressable>
+          ))}
+        </View>
+
+        <View style={{ height: 20 }} />
       </ScrollView>
+
+      {/* ── Bottom Tab Bar ── */}
+      <View style={s.bottomBar}>
+        {BOTTOM_TABS.map((tab) => {
+          if (tab.isFab) {
+            return (
+              <Pressable
+                key={tab.id}
+                style={({ pressed }) => [s.fab, pressed && s.fabPressed]}
+                onPress={() => handleBottomTab(tab)}>
+                <Text style={s.fabIcon}>{tab.symbol}</Text>
+              </Pressable>
+            );
+          }
+          const isActive = activeTab === tab.id;
+          return (
+            <Pressable
+              key={tab.id}
+              style={s.tabBtn}
+              onPress={() => handleBottomTab(tab)}>
+              <Text style={[s.tabSymbol, isActive && s.tabSymbolActive]}>
+                {tab.symbol}
+              </Text>
+              <Text style={[s.tabLabel, isActive && s.tabLabelActive]}>
+                {tab.label}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
+// ─── Estilos ──────────────────────────────────────────────────────────────────
+const s = StyleSheet.create({
   safe: { flex: 1, backgroundColor: BG },
 
-  // ── Step banner ──────────────────────────────────────
-  stepBanner: {
+  // ── Top Bar ────────────────────────────────────────────
+  topBar: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    backgroundColor: '#FFF3F0',
-    borderColor: BRAND,
-    borderWidth: 1,
-    margin: 10,
-    borderRadius: 8,
-    padding: 10,
-    gap: 8,
-  },
-  stepBadge: {
-    width: 22, height: 22, borderRadius: 11,
-    backgroundColor: BRAND, justifyContent: 'center', alignItems: 'center',
-  },
-  stepBadgeText: { color: '#fff', fontSize: 11, fontWeight: '700' },
-  stepText: { flex: 1, fontSize: 12, color: '#333', lineHeight: 17 },
-  stepBold: { fontWeight: '700' },
-
-  // ── Header ───────────────────────────────────────────
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    backgroundColor: CARD,
     paddingHorizontal: 16,
     paddingVertical: 10,
-    backgroundColor: CARD,
     borderBottomWidth: 1,
-    borderBottomColor: '#ECECEC',
+    borderBottomColor: BORDER,
   },
-  headerLeft: { gap: 2 },
-  headerLabel: { fontSize: 10, color: GRAY, fontWeight: '600', letterSpacing: 0.5 },
-  locationRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  locationIcon: { fontSize: 14 },
-  locationText: { fontSize: 15, fontWeight: '700', color: '#1A1A1A' },
-  locationChevron: { fontSize: 12, color: GRAY },
-  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  headerMeta: { fontSize: 12, color: GRAY },
-  avatar: {
-    width: 34, height: 34, borderRadius: 17,
-    backgroundColor: BRAND, justifyContent: 'center', alignItems: 'center',
+  menuIcon: {
+    fontSize: 26,
+    color: TEXT,
+    lineHeight: 30,
   },
-  avatarText: { color: '#fff', fontWeight: '700', fontSize: 14 },
+  iconBtn: {
+    width: 38,
+    height: 38,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 10,
+  },
+  topTitle: {
+    flex: 1,
+    textAlign: 'center',
+    fontSize: 17,
+    fontWeight: '700',
+    color: TEXT,
+    letterSpacing: 0.2,
+  },
+  topRight: { flexDirection: 'row', gap: 2 },
+  topIconSymbol: { fontSize: 18, color: TEXT_SEC },
 
+  // ── Sidebar ────────────────────────────────────────────
+  overlay: { flex: 1, flexDirection: 'row' },
+  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.35)' },
+  sidebar: {
+    width: 270,
+    backgroundColor: BURGUNDY_DARK,
+    height: '100%',
+  },
+  sidebarHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingTop: 52,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.1)',
+  },
+  sidebarLogo: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  sbLogoBox: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  sbLogoText: { color: '#fff', fontWeight: '900', fontSize: 12 },
+  sbBrand: { color: '#fff', fontWeight: '800', fontSize: 13 },
+  sbRole: { color: 'rgba(255,255,255,0.45)', fontSize: 8, letterSpacing: 1 },
+  closeBtn: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  closeBtnTxt: { color: '#fff', fontSize: 13, fontWeight: '700' },
+  sbItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 13,
+    paddingHorizontal: 16,
+    gap: 12,
+  },
+  sbItemActive: { backgroundColor: 'rgba(255,255,255,0.12)' },
+  sbItemSymbol: { fontSize: 16, color: 'rgba(255,255,255,0.55)', width: 22, textAlign: 'center' },
+  sbItemSymbolActive: { color: '#fff' },
+  sbItemLabel: { flex: 1, fontSize: 14, color: 'rgba(255,255,255,0.7)', fontWeight: '500' },
+  sbItemLabelActive: { color: '#fff', fontWeight: '700' },
+  sbActiveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#fff' },
+  sidebarFoot: {
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.1)',
+    padding: 16,
+    gap: 10,
+  },
+  sbUserRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  sbAvatar: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  sbAvatarTxt: { color: '#fff', fontWeight: '700', fontSize: 14 },
+  sbUserName: { color: '#fff', fontWeight: '700', fontSize: 13 },
+  sbUserEmail: { color: 'rgba(255,255,255,0.5)', fontSize: 11 },
+  logoutRow: { paddingVertical: 4 },
+  logoutTxt: { color: 'rgba(255,255,255,0.6)', fontSize: 13 },
+
+  // ── Scroll ─────────────────────────────────────────────
   scroll: { flex: 1 },
+  scrollContent: { paddingHorizontal: 16, paddingTop: 18, paddingBottom: 16 },
 
-  // ── Búsqueda ─────────────────────────────────────────
-  searchWrapper: {
+  breadcrumb: { fontSize: 13, color: TEXT_SEC, marginBottom: 6 },
+  breadcrumbMut: { color: TEXT_SEC },
+
+  greeting: {
+    fontSize: 26,
+    fontWeight: '800',
+    color: TEXT,
+    marginBottom: 22,
+  },
+
+  // ── Stats ──────────────────────────────────────────────
+  statsRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 26,
+  },
+  statCard: {
+    flex: 1,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: BORDER,
+    paddingVertical: 16,
+    paddingHorizontal: 6,
+    alignItems: 'center',
+    gap: 4,
+  },
+  statSymbol: {
+    fontSize: 22,
+    marginBottom: 2,
+  },
+  statValue: {
+    fontSize: 26,
+    fontWeight: '800',
+  },
+  statLabel: {
+    fontSize: 10,
+    color: TEXT_MUT,
+    textAlign: 'center',
+    lineHeight: 13,
+  },
+
+  // ── Acceso rápido ──────────────────────────────────────
+  sectionTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: TEXT_SEC,
+    marginBottom: 12,
+  },
+  quickGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  quickCard: {
+    width: '47%',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: BORDER,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 14,
+    gap: 10,
+  },
+  quickSymbol: { fontSize: 20, width: 24, textAlign: 'center' },
+  quickLabel: { fontSize: 14, fontWeight: '700' },
+
+  // ── Bottom Bar ─────────────────────────────────────────
+  bottomBar: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: CARD,
-    borderRadius: 12,
-    marginHorizontal: 14,
-    marginTop: 14,
-    paddingHorizontal: 14,
-    height: 46,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowRadius: 4,
-    gap: 8,
+    borderTopWidth: 1,
+    borderTopColor: BORDER,
+    paddingVertical: 8,
+    paddingHorizontal: 8,
+    paddingBottom: 10,
   },
-  searchIcon: { fontSize: 16 },
-  searchInput: { flex: 1, fontSize: 14, color: '#1A1A1A' },
+  tabBtn: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 4,
+    gap: 2,
+  },
+  tabSymbol: { fontSize: 22, color: TEXT_MUT },
+  tabSymbolActive: { color: BURGUNDY },
+  tabLabel: { fontSize: 9, color: TEXT_MUT },
+  tabLabelActive: { color: BURGUNDY, fontWeight: '700' },
 
-  // ── Secciones ─────────────────────────────────────────
-  sectionTitle: { fontSize: 17, fontWeight: '800', color: '#1A1A1A', marginHorizontal: 14, marginTop: 20, marginBottom: 10 },
-  sectionHeader: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 14, marginTop: 20, marginBottom: 10 },
-  sectionBadge: { fontSize: 12, color: '#2E7D32', backgroundColor: '#E8F5E9', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 20, fontWeight: '700', marginLeft: 8 },
-  sectionMeta: { fontSize: 12, color: GRAY },
+  quickIconBox: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
 
-  // ── Categorías ────────────────────────────────────────
-  categoriesRow: { paddingHorizontal: 14, gap: 10, paddingBottom: 4 },
-  categoryChip: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: CARD, borderRadius: 20,
-    paddingHorizontal: 14, paddingVertical: 8,
-    gap: 6, elevation: 1, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 3,
+  // FAB (botón + central)
+  fab: {
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    backgroundColor: BURGUNDY_DARK,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: -20,
+    shadowColor: BURGUNDY_DARK,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    elevation: 6,
   },
-  categoryEmoji: { fontSize: 16 },
-  categoryLabel: { fontSize: 13, fontWeight: '600', color: '#1A1A1A' },
+  fabPressed: { opacity: 0.8, transform: [{ scale: 0.96 }] },
+  fabIcon: { color: '#fff', fontSize: 26, fontWeight: '300', lineHeight: 30 },
 
-  // ── Banner promo ──────────────────────────────────────
-  promoBanner: {
-    flexDirection: 'row',
-    backgroundColor: '#FFF3E0',
-    borderRadius: 16,
-    marginHorizontal: 14,
-    marginTop: 8,
-    padding: 16,
-    overflow: 'hidden',
-  },
-  promoBannerLeft: { flex: 1, gap: 4 },
-  promoBannerTag: { fontSize: 12, fontWeight: '700', color: '#E65100' },
-  promoBannerHeadline: { fontSize: 22, fontWeight: '900', color: '#1A1A1A' },
-  promoBannerSub: { fontSize: 13, color: '#333', lineHeight: 18 },
-  promoBannerNote: { fontSize: 11, color: GRAY },
-  promoBannerBtn: {
-    marginTop: 8, backgroundColor: BRAND, borderRadius: 20,
-    paddingHorizontal: 16, paddingVertical: 7, alignSelf: 'flex-start',
-  },
-  promoBannerBtnText: { color: '#fff', fontWeight: '700', fontSize: 13 },
-  promoBannerRight: {
-    width: 50, justifyContent: 'center', alignItems: 'center',
-  },
-  promoBannerDay: { fontSize: 12, fontWeight: '900', color: BRAND, textAlign: 'center' },
-
-  // ── Tarjeta restaurante ───────────────────────────────
-  restaurantCard: {
-    backgroundColor: CARD, borderRadius: 16, marginHorizontal: 14,
-    marginBottom: 16, overflow: 'hidden',
-    elevation: 2, shadowColor: '#000', shadowOpacity: 0.07, shadowRadius: 6,
-  },
-  restaurantImageWrapper: { position: 'relative' },
-  restaurantImage: { width: '100%', height: 180 },
-  recommendedBadge: {
-    position: 'absolute', top: 10, left: 10, zIndex: 1,
-    backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 20,
-    paddingHorizontal: 10, paddingVertical: 4,
-  },
-  recommendedText: { color: '#fff', fontSize: 12, fontWeight: '700' },
-  timeBadge: {
-    position: 'absolute', bottom: 10, left: 10,
-    backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: 20,
-    paddingHorizontal: 10, paddingVertical: 4,
-  },
-  timeBadgeText: { color: '#fff', fontSize: 12, fontWeight: '600' },
-  heartBtn: {
-    position: 'absolute', bottom: 10, right: 10,
-    backgroundColor: CARD, borderRadius: 20, width: 34, height: 34,
-    justifyContent: 'center', alignItems: 'center',
-  },
-  restaurantInfo: { padding: 14, gap: 5 },
-  restaurantRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  restaurantName: { fontSize: 16, fontWeight: '800', color: '#1A1A1A', flex: 1 },
-  ratingBadge: { flexDirection: 'row', alignItems: 'center' },
-  ratingText: { fontSize: 13, fontWeight: '700', color: YELLOW },
-  reviewsText: { fontSize: 12, color: GRAY },
-  restaurantTags: { fontSize: 13, color: GRAY },
-  promoTag: {
-    backgroundColor: '#E8F5E9', borderRadius: 20, alignSelf: 'flex-start',
-    paddingHorizontal: 10, paddingVertical: 3,
-  },
-  promoTagText: { fontSize: 12, color: '#2E7D32', fontWeight: '700' },
-  couponText: { fontSize: 12, color: GRAY },
-
-  pressed: { opacity: 0.8 },
+  pressed: { opacity: 0.7 },
 });

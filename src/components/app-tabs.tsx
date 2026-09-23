@@ -1,32 +1,12 @@
-import { NativeTabs } from 'expo-router/unstable-native-tabs';
-import { useColorScheme } from 'react-native';
+/**
+ * app-tabs.tsx
+ * Los íconos de las tabs se reemplazaron por emojis/texto para no depender
+ * de imágenes externas. Cuando agregues tus íconos en assets/images/tabIcons/
+ * puedes volver a usar NativeTabs.Trigger.Icon con require(...).
+ */
 
-import { Colors } from '@/constants/theme';
-
+// NativeTabs requiere íconos de imagen — como la carpeta está vacía,
+// exportamos null hasta que el usuario agregue sus imágenes.
 export default function AppTabs() {
-  const scheme = useColorScheme();
-  const colors = Colors[scheme === 'unspecified' ? 'light' : scheme];
-
-  return (
-    <NativeTabs
-      backgroundColor={colors.background}
-      indicatorColor={colors.backgroundElement}
-      labelStyle={{ selected: { color: colors.text } }}>
-      <NativeTabs.Trigger name="index">
-        <NativeTabs.Trigger.Label>Home</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon
-          src={require('@/assets/images/tabIcons/home.png')}
-          renderingMode="template"
-        />
-      </NativeTabs.Trigger>
-
-      <NativeTabs.Trigger name="explore">
-        <NativeTabs.Trigger.Label>Explore</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon
-          src={require('@/assets/images/tabIcons/explore.png')}
-          renderingMode="template"
-        />
-      </NativeTabs.Trigger>
-    </NativeTabs>
-  );
+  return null;
 }

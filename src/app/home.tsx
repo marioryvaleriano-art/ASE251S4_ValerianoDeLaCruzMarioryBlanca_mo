@@ -57,7 +57,7 @@ const MODULES = [
   { id: 'registros',   label: 'Registros',   symbol: '☰', route: '/home' },
   { id: 'pagos',       label: 'Pagos',       symbol: '◈', route: '/home' },
   { id: 'ventas',      label: 'Ventas',      symbol: '⊟', route: '/home' },
-  { id: 'clientes',    label: 'Clientes',    symbol: '◎', route: '/home' },
+  { id: 'clientes',    label: 'Clientes',    symbol: '◎', route: '/clientes-lista' },
   { id: 'productos',   label: 'Productos',   symbol: '◻', route: '/home' },
   { id: 'promociones', label: 'Promociones', symbol: '◇', route: '/home' },
 ];
@@ -76,7 +76,7 @@ const QUICK = [
   { id: 'inventario', label: 'Inventario', symbol: '◫', route: '/home',            bg: '#EBF4FF', iconColor: '#2563EB' },
   { id: 'ventas',     label: 'Ventas',     symbol: '⊟', route: '/home',            bg: '#ECFDF5', iconColor: '#059669' },
   { id: 'productos',  label: 'Productos',  symbol: '◻', route: '/home',            bg: '#FFF7ED', iconColor: '#B45309' },
-  { id: 'clientes',   label: 'Clientes',   symbol: '◎', route: '/home',            bg: '#F5F3FF', iconColor: '#7C3AED' },
+  { id: 'clientes',   label: 'Clientes',   symbol: '◎', route: '/clientes-lista', bg: '#F5F3FF', iconColor: '#7C3AED' },
   { id: 'pagos',      label: 'Pagos',      symbol: '◈', route: '/home',            bg: '#FFF0F6', iconColor: '#BE185D' },
 ];
 
@@ -108,6 +108,10 @@ export default function HomeScreen() {
     }
     if (tab.id === 'almacenes') {
       router.push('/almacenes-lista');
+      return;
+    }
+    if (tab.id === 'perfil') {
+      router.push('/clientes-lista');
       return;
     }
     setActiveTab(tab.id);

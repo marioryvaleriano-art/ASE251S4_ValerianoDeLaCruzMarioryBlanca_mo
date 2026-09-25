@@ -8,6 +8,8 @@ export default function RootLayout() {
       <Stack.Screen name="home"             options={{ headerShown: false, gestureEnabled: false }} />
       <Stack.Screen name="almacenes-lista"  options={{ headerShown: false }} />
       <Stack.Screen name="almacenes-form"   options={{ headerShown: false }} />
+      <Stack.Screen name="clientes-lista"   options={{ headerShown: false }} />
+      <Stack.Screen name="clientes-form"    options={{ headerShown: false }} />
       {/* Pantallas heredadas */}
       <Stack.Screen name="restaurant-detail" options={{ headerShown: false }} />
     </Stack>

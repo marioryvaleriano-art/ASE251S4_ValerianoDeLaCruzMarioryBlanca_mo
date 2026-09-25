@@ -5,6 +5,7 @@ Aplicación móvil desarrollada con React Native y Expo para la gestión de alma
 Login de acceso — Autenticación de usuarios para ingresar al sistema.
 Dashboard — Resumen general del estado de los almacenes y stock.
 CRUD Maestro de Almacenes — Crear, listar, editar y eliminar registros de almacenes.
+Gestión de inventario — Control de ubicaciones y stock de productos.
 Diseño móvil — Listas y formularios optimizados para pantallas táctiles.
 🛠️ Tecnologías
 Tecnología	Uso
